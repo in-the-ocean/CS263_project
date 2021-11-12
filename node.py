@@ -1,4 +1,4 @@
-class Complex:
+class Node:
 	def __init__(self, server, id, linkage = []):
 		self.server = server
 		self.id = id

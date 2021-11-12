@@ -23,11 +23,20 @@ class Server:
                 self.message_queue.put(message)
                 # self.join()
                 sys.exit()
-            elif line[0] == "connect":
-                # self.connect()
-            elif line[0] == 'startCollection':
-                message = Message("collect")
+            elif line[0] == "Node":
+                line = line[1][:len(line[1]) - 1]
+                message = Message("Node", message=line)
                 self.message_queue.put(message)
+            elif line[0] == "local":
+                line = line[1][:len(line[1]) - 1]
+                message = Message("local", message=line)
+            elif line[0] == "connect":
+                line = line[1][:len(line[1]) - 1]
+                message = Message("connect", message=line)
+            elif line[0] == "drop":
+                line = line[1][:len(line[1]) - 1]
+                message = Message("drop", message=line)
+
 
 if __name__ == '__main__':
     server = Server(int(sys.argv[1]))

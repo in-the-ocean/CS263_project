@@ -4,10 +4,11 @@ from message import Message
 from node import Node
 
 class Graph:
-    def __init__(self, pid, message_queue):
+    def __init__(self, pid, message_queue, send_sockets):
         self.pid = pid
         self.message_queue = message_queue
         self.nodes = {}
+        self.send_sockets = send_sockets
 
     def run(self):
         while True:

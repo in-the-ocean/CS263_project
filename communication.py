@@ -48,17 +48,10 @@ class ServerComm(threading.Thread):
                 self.message_queue.put(message)
                 
 
-class DelayedSend(threading.Thread):
-    def __init__(self, message, dst_sock):
-        super().__init__(daemon=True)
-        self.message = message
-        self.dst_sock = dst_sock
-    
-    def run(self):
-        time.sleep(DELAY)
-        try:
-            self.dst_sock.send(len(self.message).to_bytes(2, byteorder='big'))
-            self.dst_sock.send(self.message)
-        except:
-            pass
+def send(message, dst_sock):
+    try:
+        dst_sock.send(len(message).to_bytes(2, byteorder='big'))
+        dst_sock.send(message)
+    except:
+        pass
 

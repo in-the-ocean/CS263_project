@@ -3,5 +3,6 @@ class Node:
     	self.server = server
         self.id = id
         self.linkage = linkage
+    
     def connect(self, nxt_server, nxt_id):
         self.linkage.append((nxt_server, nxt_id))

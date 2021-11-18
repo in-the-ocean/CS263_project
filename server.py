@@ -13,15 +13,17 @@ from communication import *
 class Server:
     def __init__(self, pid):
         self.pid = pid
-        self.message_queue = queue.Queue()
+        self.gc_message_queue = queue.Queue()
+        self.graph_message_queue = queue.Queue()
 
         self.conn_socket = None
         self.send_sockets = {}
         self.pre_connect()
-        self.conn_server = ConnServer(self.conn_socket, self.pid, self.message_queue)
+        self.conn_server = ConnServer(self.conn_socket, self.pid, self.gc_message_queue, self.graph_message_queue)
         self.conn_server.start()
 
-        self.graph = Graph(self.pid, self.message_queue, self.send_sockets)
+        self.graph = Graph(self.pid, self.graph_message_queue, self.send_sockets)
+        self.graph.start()
 
     def pre_connect(self):
         self.conn_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -49,25 +51,32 @@ class Server:
                 continue
             if line[0] == "exit" or line[0] == "e":
                 message = Message("exit")
-                self.message_queue.put(message)
+                # self.message_queue.put(message)
                 # self.join()
                 sys.exit()
             elif line[0] == "connect" or line[0] == "c":
                 self.connect()
             elif line[0] == "Node": # Node(id)
-                line = line[1][:len(line[1]) - 1]
-                message = Message("Node", message=line)
-                self.message_queue.put(message)
-            elif line[0] == "local_reference":
+                node_id = eval(line[1][:len(line[1]) - 1])
+                message = Message("Node", message=node_id)
+                self.graph_message_queue.put(message)
+            elif line[0] == "local_reference": # local_reference(node1, node2)
+                try:
+                    end_points = eval("(" + line[1])
+                    print(f"trying to connect nodes {end_points}")
+                except:
+                    print("invalid input")
+                    continue
+                message = Message("local_reference", message=end_points)
+                self.graph_message_queue.put(message)
+            elif line[0] == "remote_reference": # remote_reference(node1, node2, server2):
                 try:
                     end_points = eval("(" + line[1])
                 except:
                     print("invalid input")
                     continue
-                message = Message("local_reference", message=end_points)
-            elif line[0] == "connect":
-                line = line[1][:len(line[1]) - 1]
-                message = Message("connect", message=line)
+                message = Message("remote_reference", message=end_points)
+                self.graph_message_queue.put(message)
             elif line[0] == "drop":
                 line = line[1][:len(line[1]) - 1]
                 message = Message("drop", message=line)

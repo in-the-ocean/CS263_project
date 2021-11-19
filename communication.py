@@ -44,7 +44,6 @@ class ServerComm(threading.Thread):
             if not byte_message:
                 return
             message = pickle.loads(byte_message)
-            print(message.type)
             if message.type == 'pid':
                 self.server_pid = message.message
             elif message.type == "remote_connect":
@@ -57,7 +56,6 @@ def send(message, dst_sock):
     try:
         dst_sock.send(len(message).to_bytes(2, byteorder='big'))
         dst_sock.send(message)
-        print("send message")
     except:
         pass
 

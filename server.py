@@ -5,6 +5,7 @@ import socket
 import pickle
 
 import config
+from cycle_detection import CycleDetection 
 from graph import Graph
 from message import *
 from communication import *
@@ -24,6 +25,9 @@ class Server:
 
         self.graph = Graph(self.pid, self.graph_message_queue, self.send_sockets)
         self.graph.start()
+
+        self.cycle_detection = CycleDetection(self.gc_message_queue, self.send_sockets, self.graph)
+        self.cycle_detection.start()
 
     def pre_connect(self):
         self.conn_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -56,7 +60,7 @@ class Server:
                 sys.exit()
             elif line[0] == "connect" or line[0] == "c":
                 self.connect()
-            elif line[0] == "Node": # Node(id)
+            elif line[0] == "Node" or line[0] == "n": # Node(id)
                 node_id = eval(line[1][:len(line[1]) - 1])
                 message = Message("Node", message=node_id)
                 self.graph_message_queue.put(message)
@@ -69,7 +73,7 @@ class Server:
                     continue
                 message = Message("local_reference", message=end_points)
                 self.graph_message_queue.put(message)
-            elif line[0] == "remote_reference": # remote_reference(node1, node2, server2):
+            elif line[0] == "remote_reference" or line[0] == "r": # remote_reference(node1, node2, server2):
                 try:
                     end_points = eval("(" + line[1])
                 except:
@@ -78,8 +82,14 @@ class Server:
                 message = Message("remote_reference", message=end_points)
                 self.graph_message_queue.put(message)
             elif line[0] == "drop":
-                line = line[1][:len(line[1]) - 1]
-                message = Message("drop", message=line)
+                node_id = eval(line[1][:len(line[1]) - 1])
+                message = Message("drop", message=node_id)
+                self.graph_message_queue.put(message)
+            elif line[0] == "cycle_detection" or line[0] == "cd":
+                node_id = eval(line[1][:len(line[1]) - 1])
+                message = Message("start", message=node_id)
+                self.gc_message_queue.put(message)
+
 
 
 if __name__ == '__main__':

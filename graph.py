@@ -23,35 +23,35 @@ class Graph(threading.Thread):
         else:
             print(f"Node {node_id} already present!")
 
-    def local_reference(self, node1, node2):
-        if not node1 in self.nodes or not node2 in self.nodes:
+    def local_reference(self, nid1, nid2):
+        if not nid1 in self.nodes or not nid2 in self.nodes:
             print("connect local nodes fail: invalid ID")
             return 
-        self.nodes[node1].connect(self.pid, node2)
-        print(f"connected local nodes {node1} {node2}")
+        self.nodes[nid1].connect(self.pid, nid2)
+        print(f"connected local nodes {nid1} {nid2}")
 
-    def remote_reference(self, node1, node2, server2):
-        if not node1 in self.nodes:
-            print(f"connect remote nodes fail: invalid local node ID {node1}")
+    def remote_reference(self, nid1, nid2, server2):
+        if not nid1 in self.nodes:
+            print(f"connect remote nodes fail: invalid local node ID {nid1}")
             return 
-        self.nodes[node1].connect(server2, node2)
-        message = Message("remote_connect", message=node2, sender=self.pid)
+        self.nodes[nid1].connect(server2, nid2)
+        message = Message("remote_connect", message=nid2, sender=self.pid)
         send(pickle.dumps(message), self.send_sockets[server2])
-        print(f"connect remote node: {node1}")
+        print(f"connect remote node: {nid1}")
 
-    def referenced_by(self, node, server):
-        if not node in self.nodes:
-            print(f"remote reference failed: node {node} invalid")
+    def referenced_by(self, nid, server):
+        if not nid in self.nodes:
+            print(f"remote reference failed: node {nid} invalid")
             return
-        self.referenced[node] = 1
-        print(f"remote reference node {node} ")
-
+        self.referenced[nid] = 1
+        print(f"remote reference node {nid} ")
     
-    def drop(self, node):
-        if not node in self.nodes:
-            print(f"node {node} does not exist")
+    def drop(self, nid):
+        if not nid in self.nodes:
+            print(f"node {nid} does not exist")
             return
-        self.nodes[node].connected = False 
+        self.nodes[nid].root = False 
+        print(f"dropped node {nid} ")
 
     def run(self):
         while True:
@@ -66,16 +66,40 @@ class Graph(threading.Thread):
                     self.remote_reference(message.message[0], message.message[1], message.message[2])
                 elif message.type == "remote_connect":
                     self.referenced_by(message.message, message.sender)
+                elif message.type == "drop":
+                    self.drop(message.message)
+
+    def find_scion(self, nid):
+        scions = set()
+        for s in self.referenced:
+            if self.is_linked(s, nid):
+                scions.add((self.pid, s))
+        return scions
+
+    def is_linked(self, nid1, nid2):
+        visited = set()
+        arr = [self.nodes[nid1]]
+        visited.add(nid1)
+        while len(arr):
+            node = arr.pop()
+            if node.id == nid2:
+                return True
+            for (pid, nid) in node.neighbours():
+                if pid != self.pid or nid in visited:
+                    continue
+                visited.add(nid)
+                arr.append(self.nodes(nid))                
+        return False
 
     def hasReference(self, nid):
-        visited = {}
-        arr = [self.nodes(nid)]
+        visited = set()
+        arr = [self.nodes[nid]]
         visited.add(nid)
-        while len(arr)!=0:
+        while len(arr):
             node = arr.pop()
             if node.isConnected():
                 return True
-            for (pid, nid) in node.neighbours:
+            for (pid, nid) in node.neighbours():
                 if pid != self.pid or nid in visited:
                     continue
                 visited.add(nid)
@@ -84,16 +108,16 @@ class Graph(threading.Thread):
 
     def outsideConnections(self, nid):
         connections = []
-        visited = {}
-        arr = [self.nodes(nid)]
+        visited = set()
+        arr = [self.nodes[nid]]
         visited.add(nid)
-        while len(arr)!=0:
+        while len(arr):
             node = arr.pop()
-            for (pid, nid) in node.neighbours:
+            for (pid, nid) in node.neighbours():
                 if nid in visited:
                     continue
                 if pid != self.pid:
-                    connections.append((pid, nid))
+                    connections.append((pid, nid, node.id))
                 else:
                     visited.add(nid)
                     arr.append(self.nodes(nid))                

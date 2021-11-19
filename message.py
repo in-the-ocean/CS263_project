@@ -1,6 +1,8 @@
 class Message:
-    def __init__(self, tpe, message = "", sender = '', client_idx = -1):
+    def __init__(self, tpe, message = "", sender = ''):
         self.message = message
         self.sender = sender
         self.type = tpe
-        self.client_idx = client_idx
+        self.stubs = set()
+        self.scions = set()
+        self.target = ""

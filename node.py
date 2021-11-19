@@ -1,6 +1,6 @@
 class Node:
     def __init__(self, server, id, connected=True, outVertices = []):
-    	self.server = server
+        self.server = server
         self.id = id
         self.root = connected
         self.outVertices = outVertices

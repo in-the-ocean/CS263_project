@@ -26,14 +26,15 @@ class CycleDetection(threading.Thread):
         if not stubs:
             print(f"node {nid} does not lead to stub")
             return
+        print("stubs", stubs)
         for s in stubs:
-            if (s[0], s[1]) not in message.stubs:
-                scions = self.graph.find_scion(s[2])
+            if (s[0], s[1], s[2]) not in message.stubs:
+                scions = self.graph.find_scion(s[3])
                 if not scions:
                     print(f"no scions lead to node {nid}")
                     return
                 message.scions = message.scions.union(scions)
-                message.stubs.add((s[0], s[1]))
+                message.stubs.add((s[0], s[1], s[2]))
                 message.target = s[1]
                 message.sender = self.graph.pid
                 send(pickle.dumps(message), self.send_sockets[s[0]])

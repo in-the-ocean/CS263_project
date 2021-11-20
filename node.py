@@ -4,12 +4,13 @@ class Node:
         self.id = id
         self.root = connected
         self.outVertices = outVertices
+        self.remote_copy = 0
     
     def removeNode(self):
         self.root = False
 
-    def connect(self, nxt_server, nxt_id):
-        self.outVertices.append((nxt_server, nxt_id))
+    def connect(self, nxt_server, nxt_id, reference_id = -1):
+        self.outVertices.append((nxt_server, nxt_id, reference_id))
 
     def neighbours(self):
         return self.outVertices

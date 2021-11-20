@@ -6,3 +6,4 @@ class Message:
         self.stubs = set()
         self.scions = set()
         self.target = ""
+        self.reference_id = -1

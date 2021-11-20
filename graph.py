@@ -30,21 +30,23 @@ class Graph(threading.Thread):
         self.nodes[nid1].connect(self.pid, nid2)
         print(f"connected local nodes {nid1} {nid2}")
 
-    def remote_reference(self, nid1, nid2, server2):
-        if not nid1 in self.nodes:
-            print(f"connect remote nodes fail: invalid local node ID {nid1}")
+    def remote_reference(self, nid1, server1, nid2):
+        if not nid2 in self.nodes:
+            print(f"connect remote nodes fail: invalid local node ID {nid2}")
             return 
-        self.nodes[nid1].connect(server2, nid2)
-        message = Message("remote_connect", message=nid2, sender=self.pid)
-        send(pickle.dumps(message), self.send_sockets[server2])
-        print(f"connect remote node: {nid1}")
+        self.nodes[nid2].remote_copy += 1
+        self.referenced[(nid2, self.nodes[nid2].remote_copy)] = 1
+        message = Message("remote_connect", message=(nid1, nid2), sender=self.pid)
+        message.reference_id = self.nodes[nid2].remote_copy
+        send(pickle.dumps(message), self.send_sockets[server1])
+        print(f"connect remote node: {nid2}")
 
-    def referenced_by(self, nid, server):
-        if not nid in self.nodes:
-            print(f"remote reference failed: node {nid} invalid")
+    def remote_connect(self, connection, server, rid):
+        if not connection[0] in self.nodes:
+            print(f"remote reference failed: node {connection[0]} invalid")
             return
-        self.referenced[nid] = 1
-        print(f"remote reference node {nid} ")
+        self.nodes[connection[0]].connect(server, connection[1], rid)
+        print(f"remote connect node {connection[0]} and {connection[1]}")
     
     def drop(self, nid):
         if not nid in self.nodes:
@@ -65,15 +67,15 @@ class Graph(threading.Thread):
                 elif message.type == "remote_reference":
                     self.remote_reference(message.message[0], message.message[1], message.message[2])
                 elif message.type == "remote_connect":
-                    self.referenced_by(message.message, message.sender)
+                    self.remote_connect(message.message, message.sender, message.reference_id)
                 elif message.type == "drop":
                     self.drop(message.message)
 
     def find_scion(self, nid):
         scions = set()
-        for s in self.referenced:
-            if self.is_linked(s, nid):
-                scions.add((self.pid, s))
+        for node, rid in self.referenced:
+            if self.is_linked(node, nid):
+                scions.add((self.pid, node, rid))
         return scions
 
     def is_linked(self, nid1, nid2):
@@ -84,7 +86,7 @@ class Graph(threading.Thread):
             node = arr.pop()
             if node.id == nid2:
                 return True
-            for (pid, nid) in node.neighbours():
+            for (pid, nid, _) in node.neighbours():
                 if pid != self.pid or nid in visited:
                     continue
                 visited.add(nid)
@@ -99,7 +101,7 @@ class Graph(threading.Thread):
             node = arr.pop()
             if node.isConnected():
                 return True
-            for (pid, nid) in node.neighbours():
+            for (pid, nid, _) in node.neighbours():
                 if pid != self.pid or nid in visited:
                     continue
                 visited.add(nid)
@@ -113,11 +115,11 @@ class Graph(threading.Thread):
         visited.add(nid)
         while len(arr):
             node = arr.pop()
-            for (pid, nid) in node.neighbours():
+            for (pid, nid, rid) in node.neighbours():
                 if nid in visited:
                     continue
                 if pid != self.pid:
-                    connections.append((pid, nid, node.id))
+                    connections.append((pid, nid, rid, node.id))
                 else:
                     visited.add(nid)
                     arr.append(self.nodes(nid))                

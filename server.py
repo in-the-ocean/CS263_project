@@ -89,7 +89,11 @@ class Server:
                 node_id = eval(line[1][:len(line[1]) - 1])
                 message = Message("start", message=node_id)
                 self.gc_message_queue.put(message)
-
+            elif line[0] == "DFS_cycle_detection" or line[0] == "dfscd":
+                node_id = eval(line[1][:len(line[1]) - 1])
+                self.graph.DFS_cycle_detection((None, None), (self.pid, node_id), set())
+            elif line[0] == "show":
+                print(self.graph.nodes)
 
 
 if __name__ == '__main__':

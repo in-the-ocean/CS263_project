@@ -46,7 +46,7 @@ class ServerComm(threading.Thread):
             message = pickle.loads(byte_message)
             if message.type == 'pid':
                 self.server_pid = message.message
-            elif message.type == "remote_connect":
+            elif message.type == "remote_connect" or "DFS" in message.type:
                 self.graph_message_queue.put(message)
             else:
                 self.gc_message_queue.put(message)

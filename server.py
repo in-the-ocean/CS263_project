@@ -64,7 +64,7 @@ class Server:
                 node_id = eval(line[1][:len(line[1]) - 1])
                 message = Message("Node", message=node_id)
                 self.graph_message_queue.put(message)
-            elif line[0] == "local_reference": # local_reference(node1, node2)
+            elif line[0] == "local_reference" or line[0] == "l": # local_reference(node1, node2)
                 try:
                     end_points = eval("(" + line[1])
                     print(f"trying to connect nodes {end_points}")
@@ -73,7 +73,7 @@ class Server:
                     continue
                 message = Message("local_reference", message=end_points)
                 self.graph_message_queue.put(message)
-            elif line[0] == "remote_reference" or line[0] == "r": # remote_reference(node1, node2, server2):
+            elif line[0] == "remote_reference" or line[0] == "r": # remote_reference(node1, server1, node2):
                 try:
                     end_points = eval("(" + line[1])
                 except:

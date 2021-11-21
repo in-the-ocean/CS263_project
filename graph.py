@@ -50,6 +50,7 @@ class Graph(threading.Thread):
             print(f"remote reference failed: node {connection[0]} invalid")
             return
         self.nodes[connection[0]].connect(server, connection[1], rid)
+        print(f"neighbors of {connection[0]}: ", self.nodes[connection[0]].neighbours())
         print(f"remote connect node {connection[0]} and {connection[1]}")
     
     def drop(self, nid):
@@ -63,7 +64,6 @@ class Graph(threading.Thread):
         while True:
             if self.graph_message:
                 message = self.graph_message.get()
-                print(message.type)
                 if message.type == "Node":
                     self.new_node(message.message)
                 elif message.type == "local_reference":
@@ -105,7 +105,7 @@ class Graph(threading.Thread):
                 if pid != self.pid or nid in visited:
                     continue
                 visited.add(nid)
-                arr.append(self.nodes(nid))                
+                arr.append(self.nodes[nid])                
         return False
 
     def hasReference(self, nid):
@@ -120,7 +120,7 @@ class Graph(threading.Thread):
                 if pid != self.pid or nid in visited:
                     continue
                 visited.add(nid)
-                arr.append(self.nodes(nid))                
+                arr.append(self.nodes[nid])                
         return False
 
     def outsideConnections(self, nid):
@@ -137,7 +137,7 @@ class Graph(threading.Thread):
                     connections.append((pid, nid, rid, node.id))
                 else:
                     visited.add(nid)
-                    arr.append(self.nodes(nid))                
+                    arr.append(self.nodes[nid])                
         return connections # (serveriID, nodeID, referenceID, localNodeID)
 
 

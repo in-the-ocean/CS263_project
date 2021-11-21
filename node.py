@@ -1,9 +1,9 @@
 class Node:
-    def __init__(self, server, id, connected=True, outVertices = []):
+    def __init__(self, server, nid, connected=True):
         self.server = server
-        self.id = id
+        self.id = nid
         self.root = connected
-        self.outVertices = outVertices
+        self.outVertices = []
         self.remote_copy = 0
     
     def removeNode(self):

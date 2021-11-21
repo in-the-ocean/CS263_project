@@ -44,7 +44,6 @@ class CycleDetection(threading.Thread):
         while True:
             if self.gc_message_queue:
                 message = self.gc_message_queue.get()
-                print(message.type)
                 if message.type == "start":
                     self.start_cycle_detection(message.message)
                 elif message.type == "cycle detection":
@@ -52,7 +51,7 @@ class CycleDetection(threading.Thread):
                     scions_diff = message.scions - message.stubs
                     stubs_diff = message.stubs - message.scions
                     if not scions_diff and not stubs_diff:
-                        print(f"cycle detected: {message.scions}")
+                        print(f"cycle detected: {[(s[0], s[1]) for s in message.scions]}")
                         continue
                     self.calculate_next_step(message.target, message)
 

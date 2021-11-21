@@ -6,6 +6,8 @@ from communication import send
 from message import Message
 from node import Node
 
+import time
+
 class Graph(threading.Thread):
     def __init__(self, pid, graph_message, send_sockets):
         super().__init__(daemon=True)
@@ -14,6 +16,8 @@ class Graph(threading.Thread):
         self.nodes = {}
         self.referenced = {}
         self.send_sockets = send_sockets
+        self.DFS_cycle_response = []
+        self.inDFSCycleDetection = False
     
     def new_node(self, node_id):
         if not node_id in self.nodes:
@@ -70,6 +74,17 @@ class Graph(threading.Thread):
                     self.remote_connect(message.message, message.sender, message.reference_id)
                 elif message.type == "drop":
                     self.drop(message.message)
+                elif message.type == "DFS_abort" :
+                    self.DFS_cycle_response.append(False)
+                elif message.type == "DFS_cycle_find":
+                    self.DFS_cycle_response.append(True)
+                elif message.type == "DFS_cycle_detection":
+                    if self.inDFSCycleDetection == False:
+                        self.DFS_cycle_detection( (message.sender,message.message[0]), (message.message[1],message.message[2]), message.visited)
+                        self.inDFSCycleDetection = True
+                elif message.type == "DFS_remove":
+                    self.remove((message.sender,message.message[0]), (message.message[1],message.message[2]), message.visited)
+
 
     def find_scion(self, nid):
         scions = set()
@@ -123,52 +138,76 @@ class Graph(threading.Thread):
                 else:
                     visited.add(nid)
                     arr.append(self.nodes(nid))                
-        return connections 
+        return connections # (serveriID, nodeID, referenceID, localNodeID)
 
-    def cycle_detection(self, sids, rids, visited):
+
+    # dfs approach
+    def DFS_cycle_detection(self, sids, rids, visited):
         assert(rids[0] == self.pid)
-        receiver = self.nodes[rids[0]]
-        if self.hasReference(receiver):
+        localNode = self.nodes[rids[1]]
+        if self.hasReference(localNode):
             # send False to sender, as a local reference is found
-            send(sids, False)
+            message = Message("DFS_abort", message=(sids[1], rids[1]), sender=self.pid)
+            if sids[0] != None:
+                send(pickle.dumps(message), self.send_sockets[sids[0]])
             # abort
+            self.inDFSCycleDetection = False
             return
-        if receiver in visited:
+        if rids in visited:
             # send True to sender, as a cycle is found
-            send(sids, True)
+            message = Message("DFS_cycle_find", message=(sids[1], rids[1]), sender=self.pid)
+            if sids[0] != None:
+                send(pickle.dumps(message), self.send_sockets[sids[0]])
+            return
         visited.add(rids)
-        
-        for (pid, nid) in receiver.outsideConnections():
-            send((pid, nid), "cycle detection", visited)
-            if recv((pid, nid)) == False:
-                send(sids, False)
-                # abort
-                return
+        response = 0
+        for (pid, nid, rid, localNodeID) in self.outsideConnections(rids[1]):
+            message = Message("DFS_cycle_detection", message=(localNodeID, nid), sender=self.pid, visited = visited)
+            send(pickle.dumps(message), self.send_sockets[pid])
+            response+=1
+
         # after waiting for all senders
-        send(sids, True)
+        while(len(self.DFS_cycle_response) != response): time.sleep(1)
+        if False in self.DFS_cycle_response:
+            message = Message("DFS_abort", message=(sids[1], rids[1]), sender=self.pid)
+            if sids[0] != None:
+                send(pickle.dumps(message), self.send_sockets[sids[0]])
+            self.DFS_cycle_response = []
+            # abort
+            self.inDFSCycleDetection = False
+            return
+        else:
+            message = Message("DFS_cycle_find", message=(sids[1], rids[1]), sender=self.pid)
+            if sids[0] != None:
+                send(pickle.dumps(message), self.send_sockets[sids[0]])
+            self.DFS_cycle_response = []
         
         # this is the cycle detection starter
-        if not sids:
-            self.remove(rids)
+        if sids[0] == None:
+            self.remove((None,None), rids)
+        self.inDFSCycleDetection = False
         return
     
-    def remove(self, sids, rids, visited):
+    def remove(self, sids, rids, visited=set()):
         # inform other sever to do GC
         if rids not in visited:
             visited.add(rids)
-            for (pid, nid) in self.nodes[rids[1]].outsideConnections():
-                send((pid, nid), "remove", visited)
-                visited = {}
+            for (pid, nid, referenceID, localNodeID) in self.outsideConnections(rids[1]):
+                message = Message("DFS_remove", message=(rids[1], nid), sender=self.pid, visited = visited)
+                send(pickle.dumps(message), self.send_sockets[pid])
         # perform local GC
-        arr = [rids[0]]
+        arr = [rids[1]]
+        seen = set()
+        seen.add(rids[1])
         while len(arr)!=0:
             id = arr.pop()
             if id not in self.nodes:
                 continue
-            for (pid, nid) in self.nodes[nid].neighbours:
-                if pid == self.pid:
+            for (pid, nid) in self.nodes[nid].neighbours():
+                if pid == self.pid and nid not in seen:
                     arr.append(nid) 
-                del self.nodes[id]               
+                    seen.add(nid)
+            del self.nodes[id]               
         return
             
         

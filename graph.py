@@ -50,7 +50,6 @@ class Graph(threading.Thread):
             print(f"remote reference failed: node {connection[0]} invalid")
             return
         self.nodes[connection[0]].connect(server, connection[1], rid)
-        print(f"neighbors of {connection[0]}: ", self.nodes[connection[0]].neighbours())
         print(f"remote connect node {connection[0]} and {connection[1]}")
     
     def drop(self, nid):

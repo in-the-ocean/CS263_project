@@ -26,7 +26,6 @@ class CycleDetection(threading.Thread):
         if not stubs:
             print(f"node {nid} does not lead to stub")
             return
-        print("stubs", stubs)
         for s in stubs:
             if (s[0], s[1], s[2]) not in message.stubs:
                 scions = self.graph.find_scion(s[3])
@@ -51,7 +50,7 @@ class CycleDetection(threading.Thread):
                     scions_diff = message.scions - message.stubs
                     stubs_diff = message.stubs - message.scions
                     if not scions_diff and not stubs_diff:
-                        print(f"cycle detected: {[(s[0], s[1]) for s in message.scions]}")
+                        print(f"cycle detected: {set([(s[0], s[1]) for s in message.scions])}")
                         continue
                     self.calculate_next_step(message.target, message)
 

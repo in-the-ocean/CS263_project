@@ -18,4 +18,7 @@ type `remote_reference(nid1, pid1, nid2)` or `r(nid1, pid1, nid2)` to connect no
 
 type `drop(nid)` to drop root reference to node `nid`
 
-type `cycle_detection(nid)` or `cd(nid)` to start cycle_detection on node `nid`
+
+type `dfscd(nid)` to start cycle_detection on node `nid` using our proposed algorithm
+
+type `cycle_detection(nid)` or `cd(nid)` to start cycle_detection on node `nid` using Viega and Ferreira’s Algorithm
